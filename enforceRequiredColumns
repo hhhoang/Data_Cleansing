@@ -1,0 +1,87 @@
+import time
+
+from tkinter import *
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+
+# open dialogue to allow user to choose file
+Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
+file = askopenfilename() # show an "Open" dialog box and return the path to the selected file
+print(file)
+
+# TO DO: open dialogue to allow user enter delimiter
+
+# ask for delimiter type from user
+delimiter = input("What is delimiter?")
+
+lastLine = None
+lastDelimiterCount = 0
+line = None
+delimiterCount = 0
+outputLineIndex = 0
+tooFewDelimiters = 0
+tooManyDelimiters = 0
+start = time.time() # record starting time of the process
+with open(file, 'r', encoding="utf8") as f, open('logfile.txt', 'w', encoding="utf8") as f1, open('output.csv', 'w', encoding="utf8") as f2:
+    content = f.readlines()
+    requiredDelimiterCount = content[0].count(delimiter)
+    print(requiredDelimiterCount, "number of required delimiters")
+    f2.write(content[0]) # header
+    for i in range(1, len(content)):
+        line = content[i].strip()
+        delimiterCount = content[i].count(delimiter)   
+        if lastLine is None:
+            if delimiterCount == requiredDelimiterCount:
+                f2.write(line +'\n')
+                outputLineIndex += 1
+                line = None
+                delimiterCount = 0
+            if  delimiterCount > requiredDelimiterCount:
+                tooManyDelimiters += 1
+                print("error 1: current line ", i, line, "has ", delimiterCount, "delimiters")
+                f1.write("line with too  many delimiters: " + line)
+                newLine = input("Please correct the delimiter and enter it here: ")
+                f2.write(newLine +'\n') 
+                f1.write("corrected by user: " + newLine)
+                outputLineIndex += 1               
+                line = None
+                delimiterCount = 0  
+        else:
+            if lastDelimiterCount + delimiterCount > requiredDelimiterCount:
+                tooFewDelimiters += 2
+                print("error 2: last line", i-1, ": ", lastLine, "has ", lastDelimiterCount, "delimiters")
+                print("error 2: current line", i, ": ", line, "has ", delimiterCount, "delimiters")
+                print("combined line: ", lastLine + line)
+                newLine = input("The combined line has  more than required delimiters, please correct the delimiter and enter it here: ")
+                f2.write(newLine +'\n')
+                outputLineIndex += 1
+                line = None
+                delimiterCount = 0
+            elif lastDelimiterCount + delimiterCount == requiredDelimiterCount:
+                tooFewDelimiters += 2
+                newLine = lastLine + line
+                f2.write(newLine +'\n')
+                outputLineIndex += 1
+                line = None
+                delimiterCount = 0
+            else:
+                line = lastLine + line
+                delimiterCount = lastDelimiterCount + delimiterCount
+                tooFewDelimiters += 1
+        lastLine = line
+        lastDelimiterCount = delimiterCount
+#
+    end = time.time() # record ending time of the process
+    print('END OF PROCESS')        
+    f1.write("input lines: " + str(len(content)) + "; output lines: " + str(outputLineIndex) + '\n')
+    f1.write("There are " + str(tooManyDelimiters) + " lines with more delimiters than required and corrected by user" + '\n')
+    f1.write("There are " + str(tooFewDelimiters) + " lines with less delimiters than required and combined" + '\n')
+    f1.write('Process takes :'+ str(end - start)+ 'seconds')
+    f2.close()
+
+        
+        
+
+
+
+
