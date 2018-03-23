@@ -1,0 +1,47 @@
+# We have a dataframe read from Excel containing 4 columns A, B, C, D, we want to convert to nested json format A > B > C > D
+# Here: Account Type, Account SubType, Account Class, Account SubClass
+# purpose: to create a cluster dendogram using D3JS here: https://beta.observablehq.com/@mbostock/d3-cluster-dendrogram
+
+import pandas as pd
+import numpy as np
+import glob, os
+
+# remove duplications and add count (# of duplication) columns 
+data = all_data[['Account Type', 'Account SubType', 'Account Class', 'Account SubClass']]
+data = data.groupby(['Account Type', 'Account SubType', 'Account Class', 'Account SubClass']).size().reset_index()
+
+typeGroup = data.groupby(['Account Type'])
+dict_json = {"name": "mapping"}
+children = []
+for name, group in typeGroup:
+    temp = {}
+    temp["name"] = name
+    temp["children"] = []
+    subTypeGroup = group.groupby(['Account SubType'])
+    for name, asubtype in subTypeGroup:
+        temp1 = {}
+        temp1["name"] = name
+        temp1["children"] = []        
+        classGroup = asubtype.groupby(['Account Class'])
+        for name, aclass in classGroup:
+            temp2 = {}
+            temp2["name"] = name
+            temp2["children"] = list(aclass.T.to_dict().values())
+            for t in temp2["children"]:              
+                t["name"] = t["Account SubClass"]
+                #t["count"] = t["count"]
+                del t["Account Type"]
+                del t["Account SubType"]
+                del t["Account Class"]
+                del t["Account SubClass"]
+            temp1["children"].append(temp2)
+        temp["children"].append(temp1)
+    children.append(temp)
+dict_json["children"] = children
+
+## save to json file
+import json
+j = json.dumps(dict_json, indent=4)
+f = open('flare.json', 'w')
+f.write(j)
+f.close()    
